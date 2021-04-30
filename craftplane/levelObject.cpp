@@ -44,19 +44,18 @@ namespace mapbox {
 	}
 }
 
-LevelObject::LevelObject(Paths shape, glm::vec3 pos, float zThick) {
+LevelObject::LevelObject(Paths shape, glm::vec3 pos, float zThick, 
+	unsigned int shadID, unsigned int texID) {
 
 	this->shape = shape;
 	this->zThick = zThick;
+	this->shadID = shadID;
+	this->texID = texID;
 
 	transform = glm::mat4(1);
 	transform = glm::translate(transform, pos);
 
-	shader = Shader("stdvert.vert", "stdfrag.frag");
-
-	viewLoc = glGetUniformLocation(shader.getID(), "view");
-	transLoc = glGetUniformLocation(shader.getID(), "trans");
-	projLoc = glGetUniformLocation(shader.getID(), "proj");
+	transLoc = glGetUniformLocation(shadID, "trans");
 
 	pathsToMesh(shape, verts, tris, uvs, norms, zThick);
 
@@ -92,16 +91,20 @@ LevelObject::LevelObject(Paths shape, glm::vec3 pos, float zThick) {
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 }
 
-void LevelObject::draw(glm::mat4 camTransform, glm::mat4 projection) {
-	shader.use();
-
-	glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(camTransform));
+void LevelObject::draw() {
 	glUniformMatrix4fv(transLoc, 1, GL_FALSE, glm::value_ptr(transform));
-	glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(projection));
 
 	glBindVertexArray(vertAO);
 	glDrawElements(GL_TRIANGLES, tris.size(), GL_UNSIGNED_INT, 0);
 	glBindVertexArray(0);
+}
+
+unsigned int LevelObject::getShaderId() {
+	return this->shadID;
+}
+
+unsigned int LevelObject::getTextureId() {
+	return this->texID;
 }
 
 IntPoint vec2ToIntpoint(glm::vec2 vec) {

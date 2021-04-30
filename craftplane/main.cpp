@@ -37,7 +37,6 @@ glm::vec3 camUp = glm::cross(camFront, camRight);
 glm::mat4 camTrans = glm::lookAt(camPos, camPos + camFront, up);
 glm::mat4 projection;
 
-
 void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
 	winW = width;
 	winH = height;
@@ -135,6 +134,13 @@ int main() {
 
 	stbi_image_free(data);
 
+	// shader
+	Shader stdShader("stdvert.vert", "stdfrag.frag");
+	unsigned int stdShaderId = stdShader.getID();
+	glUseProgram(stdShaderId);
+	unsigned int viewLoc = glGetUniformLocation(stdShaderId, "view");
+	unsigned int projLoc = glGetUniformLocation(stdShaderId, "proj");;
+
 	// create test level object
 	Paths p1 {
 		Path{
@@ -144,7 +150,7 @@ int main() {
 			IntPoint(0, 20000),
 		}
 	};
-	LevelObject levelObject1 = LevelObject(p1, glm::vec3(0, 0, 0), 1);
+	LevelObject levelObject1 = LevelObject(p1, glm::vec3(0, 0, 0), 1, stdShaderId, tex);
 
 	Paths p2{
 		Path{
@@ -154,7 +160,7 @@ int main() {
 			IntPoint(100000, -10000),
 		}
 	};
-	LevelObject levelObject2 = LevelObject(p2, glm::vec3(0, 0, -2.5F), 5);
+	LevelObject levelObject2 = LevelObject(p2, glm::vec3(0, 0, -2.5F), 5, stdShaderId, tex);
 
 	Paths p3{
 		Path{
@@ -163,7 +169,7 @@ int main() {
 			IntPoint(10000, 30000),
 		}
 	};
-	LevelObject levelObject3 = LevelObject(p3, glm::vec3(0, 0, -0.1f), 1.2f);
+	LevelObject levelObject3 = LevelObject(p3, glm::vec3(0, 0, -0.1f), 1.2f, stdShaderId, tex);
 
 	Paths p4{
 		Path{
@@ -179,7 +185,7 @@ int main() {
 			IntPoint(-5200, 0),
 		},
 	};
-	LevelObject levelObject4 = LevelObject(p4, glm::vec3(3, 0, -1.5F), 0.5f);
+	LevelObject levelObject4 = LevelObject(p4, glm::vec3(3, 0, -1.5F), 0.5f, stdShaderId, tex);
 
 	Paths p5{
 		Path{
@@ -192,7 +198,7 @@ int main() {
 			IntPoint(-2500, 34200),
 		},
 	};
-	LevelObject levelObject5 = LevelObject(p5, glm::vec3(3, 0, -1.7f), 1.1F);
+	LevelObject levelObject5 = LevelObject(p5, glm::vec3(3, 0, -1.7f), 1.1f, stdShaderId, tex);
 
 	// buffers
 	glEnable(GL_DEPTH_TEST);
@@ -210,11 +216,14 @@ int main() {
 		glClearColor(0.2f, 0.3f, 0.3f, 1);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		levelObject1.draw(camTrans, projection);
-		levelObject2.draw(camTrans, projection);
-		levelObject3.draw(camTrans, projection);
-		levelObject4.draw(camTrans, projection);
-		levelObject5.draw(camTrans, projection);
+		glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(camTrans));
+		glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(projection));
+
+		levelObject1.draw();
+		levelObject2.draw();
+		levelObject3.draw();
+		levelObject4.draw();
+		levelObject5.draw();
 
 		glfwSwapBuffers(window);
 		glfwPollEvents();

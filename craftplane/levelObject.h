@@ -22,16 +22,15 @@ private:
 	glm::mat4 transform;
 
 	Paths shape;
-	Shader shader;
+	unsigned int shadID;
+	unsigned int texID;
 
 	std::vector<glm::vec3> verts;
 	std::vector<unsigned int> tris;
 	std::vector<glm::vec2> uvs;
 	std::vector<glm::vec3> norms;
 
-	unsigned int viewLoc;
 	unsigned int transLoc;
-	unsigned int projLoc;
 
 	float zPos;
 	float zThick;
@@ -39,8 +38,11 @@ private:
 	unsigned int uvBO, vertBO, vertAO, triBO, normBO;
 
 public:
-	LevelObject(Paths shape, glm::vec3 pos, float zThick);
-	void draw(glm::mat4 camView, glm::mat4 projection);
+	LevelObject(Paths shape, glm::vec3 pos, float zThick,
+		unsigned int shadID, unsigned int texID);
+	void draw();
+	unsigned int getShaderId();
+	unsigned int getTextureId();
 };
 
 static void pathsToMesh(const Paths paths,
