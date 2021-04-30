@@ -1,0 +1,259 @@
+using System.Collections.Generic;
+using ClipperLib;
+using LevelObjects.PhysicalObjects;
+using LevelObjects.PhysicalObjects.MaterialObjects;
+using UnityEngine;
+
+namespace LevelObjects
+{
+	using Path = List<IntPoint>;
+	using Paths = List<List<IntPoint>>;
+
+	/// <summary>
+	///     Generates a mesh from a <see cref="ClipperLib" /> shape
+	///     Responsible for triangulating the front face using <see cref="Poly2Mesh" /> and generating the bevel
+	/// </summary>
+	[RequireComponent(typeof(MeshCollider), typeof(MeshFilter), typeof(MeshRenderer))]
+	public class MeshManager : MonoBehaviour
+	{
+		[SerializeField]
+		private MeshRenderer meshRenderer;
+
+		[SerializeField]
+		private MeshFilter meshFilter;
+
+		[SerializeField]
+		private MeshCollider meshCollider;
+
+		// /// <summary>
+		// /// If the mesh is generated from the shape
+		// /// </summary>
+		// public bool isProcedural;
+
+		private Substance substance;
+
+		private ClipperOffset offset = new ClipperOffset();
+
+		public void UpdateZPos(int firstLayer)
+		{
+			transform.localPosition = new Vector3(0, 0, firstLayer - 1);
+		}
+
+		/// <summary>
+		/// Sets the meshManager's substance and rebuilds the mesh if necessary
+		/// </summary>
+		/// <param name="substance"></param>
+		public void SetSubstance(Substance substance)
+		{
+			
+		}
+
+		public void GenerateProceduralMesh(Paths shape, int thickness, ProceduralBevel bevel)
+		{
+			Vector2[] bp = bevel.bevelPoints;
+			bool[] s = bevel.sharp;
+
+			const float frontFacePosition = -0.5f;
+			float backFacePosition = thickness - 0.5f;
+
+			offset.Clear();
+			// Paths offsetPaths = new Paths();
+			//
+			// offset.AddPaths(shape, JoinType.jtMiter, EndType.etClosedPolygon);
+			//
+			// offset.Execute(ref offsetPaths, -bp[0].x * Global.ClipperPrecision);
+
+			Vector2[][] offsetShapes = new Vector2[shape.Count][];
+
+			var verts = new List<Vector3>();
+			var uvs = new List<Vector2>();
+			var tris = new List<int>();
+
+			int k = 0;
+
+			//bevels
+			for (int l = 0; l < shape.Count; l++)
+			{
+				Path path = shape[l];
+				Vector2[] offsetShape = new Vector2[path.Count];
+				offsetShapes[l] = offsetShape;
+
+				int c = bp.Length;
+
+				foreach (bool b in s)
+					if (b)
+						c++;
+
+				//front face offset inward
+				float o = bp[0].x;
+
+				for (var i = 0; i < path.Count; i++)
+				{
+					//front face vertex position
+					Vector3 v = path[i];
+
+					//next index
+					int j = (i + 1) % path.Count;
+
+					//normal A
+					Vector2 na = Vector2.Perpendicular(new Vector2(path[j].X - path[i].X, path[j].Y - path[i].Y))
+						.normalized;
+
+					//previous index
+					j = (int) Mathf.Repeat(i - 1, path.Count);
+
+					//normal B
+					Vector2 nb = Vector2.Perpendicular(new Vector2(path[i].X - path[j].X, path[i].Y - path[j].Y))
+						.normalized;
+
+					//bevel direction and magnitude
+					Vector3 b = (na + nb).normalized;
+					// not sure where this constant 1.4 comes from. obtained from guessing
+					// length is too short if using 1. need to figure out why
+					// EDIT: i realized it was sqrt(2) :)
+					b *= Mathf.Clamp( 1.41421f / Mathf.Sqrt(1 + Vector2.Dot(na, nb)), -1f, 1f);
+					;
+
+					v += b * bp[0].x;
+
+					offsetShape[i] = v;
+
+					bool sh = Vector2.Angle(na, nb) > 30;
+
+					if (sh)
+
+						for (var n = 0; n < bp.Length - 1; n++)
+						{
+							//z offset
+							Vector3 z = new Vector3(0, 0, bp[n].y + frontFacePosition);
+							Vector3 z2;
+							if ( n == bp.Length - 2)
+								z2 = new Vector3(0, 0, backFacePosition);
+							else
+								z2 = new Vector3(0, 0, bp[n + 1].y + frontFacePosition);
+
+							Vector3 nn = v + (Vector3) nb * (z.z - z2.z);
+							//
+							// int a = 1;
+							//
+							// if (s[n + 1])
+							verts.Add(v + b * (bp[n].x - o) + z);
+							uvs.Add(new Vector2(verts[verts.Count - 1].x, verts[verts.Count - 1].y));
+
+							if (n == bp.Length - 2)
+							{
+								verts.Add(v + b * (bp[n + 1].x - o) + z2);
+								uvs.Add(new Vector2(nn.x, nn.y));
+							}
+							else if (s[n + 1])
+							{
+								verts.Add(v + b * (bp[n + 1].x - o) + z2);
+								uvs.Add(new Vector2(verts[verts.Count - 1].x, verts[verts.Count - 1].y));
+							}
+						}
+
+					int a = 0;
+
+					for (var n = 0; n < bp.Length - 1; n++)
+					{
+						//z offset
+						Vector3 z = new Vector3(0, 0, bp[n].y + frontFacePosition);
+						Vector3 z2;
+						if ( n == bp.Length - 2)
+							z2 = new Vector3(0, 0, backFacePosition);
+						else
+							z2 = new Vector3(0, 0, bp[n + 1].y + frontFacePosition);
+
+						Vector3 nn;
+						if (sh)
+							nn = v + (Vector3) na * (z.z - z2.z);
+						else
+						{
+							nn = v + b.normalized * (z.z - z2.z);
+						}
+
+						if (s[n])
+							a ++;
+
+						if (i == path.Count - 1)
+						{
+							tris.Add(k + n + a);
+							tris.Add(verts.Count + 1);
+							tris.Add(verts.Count);
+
+							tris.Add(verts.Count + 1);
+							tris.Add(k + n + a);
+							tris.Add(k + n + a + 1);
+						}
+						else
+						{
+							tris.Add(verts.Count + c);
+							tris.Add(verts.Count + 1);
+							tris.Add(verts.Count);
+
+							tris.Add(verts.Count + 1);
+							tris.Add(verts.Count + c);
+							tris.Add(verts.Count + c + 1);
+						}
+
+						//add vertices
+						verts.Add(v + b * (bp[n].x - o) + z);
+						uvs.Add(new Vector2(verts[verts.Count - 1].x, verts[verts.Count - 1].y));
+
+						if (n == bp.Length - 2)
+						{
+							verts.Add(v + b * (bp[n + 1].x - o) + z2);
+							uvs.Add(new Vector2(nn.x, nn.y));
+						}
+						else if (s[n + 1])
+						{
+							verts.Add(v + b * (bp[n + 1].x - o) + z2);
+							uvs.Add(new Vector2(verts[verts.Count - 1].x, verts[verts.Count - 1].y));
+						}
+					}
+				}
+
+				k = verts.Count;
+			}
+
+			MeshData result = PathToMesh.PathsToMesh(offsetShapes, frontFacePosition);
+
+			int initialCount = verts.Count;
+
+			verts.AddRange(result.Vertices);
+
+			foreach (Vector2 v in result.Vertices)
+			{
+				uvs.Add(new Vector2(v.x, v.y));
+			}
+
+			foreach (int index in result.Triangles)
+				tris.Add(index + initialCount);
+
+			if (meshFilter.sharedMesh == null)
+			{
+				meshFilter.sharedMesh = new Mesh();
+				meshCollider.sharedMesh = meshFilter.sharedMesh;
+			}
+			else
+			{
+				meshFilter.sharedMesh.Clear();
+			}
+
+			meshFilter.sharedMesh.SetVertices(verts);
+			meshFilter.sharedMesh.SetTriangles(tris, 0);
+			meshFilter.sharedMesh.SetUVs(0, uvs);
+			meshFilter.sharedMesh.RecalculateNormals();
+			meshFilter.sharedMesh.RecalculateTangents();
+			Mesh sharedMesh;
+			(sharedMesh = meshFilter.sharedMesh).RecalculateBounds();
+			meshCollider.sharedMesh = sharedMesh;
+		}
+
+		private void OnDestroy()
+		{
+			if (!isProcedural)
+				Destroy(meshFilter.mesh);
+		}
+	}
+}

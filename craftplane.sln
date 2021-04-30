@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.30804.86
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "craftplane", "craftplane\craftplane.vcxproj", "{AA003814-1D67-444C-AFF1-BE7DE2933B6F}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x64 = Debug|x64
+		Debug|x86 = Debug|x86
+		Release|x64 = Release|x64
+		Release|x86 = Release|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{AA003814-1D67-444C-AFF1-BE7DE2933B6F}.Debug|x64.ActiveCfg = Debug|x64
+		{AA003814-1D67-444C-AFF1-BE7DE2933B6F}.Debug|x64.Build.0 = Debug|x64
+		{AA003814-1D67-444C-AFF1-BE7DE2933B6F}.Debug|x86.ActiveCfg = Debug|Win32
+		{AA003814-1D67-444C-AFF1-BE7DE2933B6F}.Debug|x86.Build.0 = Debug|Win32
+		{AA003814-1D67-444C-AFF1-BE7DE2933B6F}.Release|x64.ActiveCfg = Release|x64
+		{AA003814-1D67-444C-AFF1-BE7DE2933B6F}.Release|x64.Build.0 = Release|x64
+		{AA003814-1D67-444C-AFF1-BE7DE2933B6F}.Release|x86.ActiveCfg = Release|Win32
+		{AA003814-1D67-444C-AFF1-BE7DE2933B6F}.Release|x86.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {8B365D21-A492-4EB6-9489-FC27DA0BFF7B}
+	EndGlobalSection
+EndGlobal
