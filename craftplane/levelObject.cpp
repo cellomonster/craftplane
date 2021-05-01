@@ -314,7 +314,7 @@ static void pathsToMesh(const Paths paths,
 	}
 
 	std::vector<unsigned int> frontTris = mapbox::earcut<unsigned int>(paths);
-	for (unsigned int i = 0; i < frontTris.size(); i++) {
+	for (int i = frontTris.size() - 1; i > -1; i--) {
 		tris.push_back(frontTris[i] + k);
 	}
 }
