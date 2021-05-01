@@ -43,6 +43,11 @@ public:
 	void draw();
 	unsigned int getShaderId();
 	unsigned int getTextureId();
+
+	void setPos(glm::vec3 pos);
+	void translate(glm::vec3 delta);
+	void setPaths(Paths shape);
+	void setZThick(float zThick);
 };
 
 static void pathsToMesh(const Paths paths,

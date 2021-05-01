@@ -52,10 +52,10 @@ LevelObject::LevelObject(Paths shape, glm::vec3 pos, float zThick,
 	this->shadID = shadID;
 	this->texID = texID;
 
-	transform = glm::mat4(1);
-	transform = glm::translate(transform, pos);
+	this->transform = glm::mat4(1);
+	this->transform = glm::translate(transform, pos);
 
-	transLoc = glGetUniformLocation(shadID, "trans");
+	this->transLoc = glGetUniformLocation(shadID, "trans");
 
 	pathsToMesh(shape, verts, tris, uvs, norms, zThick);
 
@@ -105,6 +105,15 @@ unsigned int LevelObject::getShaderId() {
 
 unsigned int LevelObject::getTextureId() {
 	return this->texID;
+}
+
+// todo: needs to be rewritten once rotation supported
+void LevelObject::setPos(glm::vec3 pos) {
+	this->transform = glm::translate(glm::mat4(1), pos);
+}
+
+void LevelObject::translate(glm::vec3 delta) {
+	this->transform = glm::translate(this->transform, delta);
 }
 
 IntPoint vec2ToIntpoint(glm::vec2 vec) {

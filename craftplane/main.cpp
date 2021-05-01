@@ -10,12 +10,13 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
-#include "Shader.h"
+#include "shader.h"
 #include "levelObject.h"
+#include "camera.h"
 
 int winW = 800;
 int winH = 800;
-float scrRatio = winW / winH;
+float scrRatio = (float)winW / (float)winH;
 
 const float mouseSensitivity = 0.1f;
 float mouseLastX = winW / 2.0f, mouseLastY = winH / 2.0f;
@@ -27,32 +28,26 @@ const float fov = 50;
 const float nearClip = 0.1f;
 const float farClip = 10000;
 
-float pitch, yaw = -90;
+Camera cam(fov, winH, winH, nearClip, farClip);
 
-const glm::vec3 up = glm::vec3(0, 1, 0);
-glm::vec3 camPos = glm::vec3(0, 1, -5);
-glm::vec3 camFront = glm::vec3(0.0f, 0.0f, 1.0f);
-glm::vec3 camRight = glm::normalize(glm::cross(up, camFront));
-glm::vec3 camUp = glm::cross(camFront, camRight);
-glm::mat4 camTrans = glm::lookAt(camPos, camPos + camFront, up);
-glm::mat4 projection;
+std::vector<LevelObject> levelObjects;
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
-	winW = width;
-	winH = height;
-	scrRatio = winW / winH;
-	glViewport(0, 0, width, height);
-	float radFov = glm::radians(fov);
-	projection = glm::perspective(radFov, scrRatio, nearClip, farClip);
+	cam.setPerspective(fov, width, height, nearClip, farClip);
 }
 
-void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
+/*void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
 	float xoffset = xpos - mouseLastX;
 	float yoffset = mouseLastY - ypos;
 	mouseLastX = xpos;
 	mouseLastY = ypos;
 	xoffset *= mouseSensitivity;
 	yoffset *= mouseSensitivity;
+
+	cursorPos += glm::vec2(xoffset, yoffset);
+	std::cout << cursorPos.x << std::endl;
+	std::cout << cursorPos.y << std::endl;
+	cursor->translate(glm::vec3(cursorPos.x, cursorPos.y, 0));
 
 	yaw += xoffset;
 	pitch += yoffset;
@@ -69,7 +64,7 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
 	direction.y = sin(radPitch);
 	direction.z = sin(radYaw) * cos(radPitch);
 	camFront = glm::normalize(direction);
-}
+}*/
 
 void calc_delta_time() {
 	float currentFrame = glfwGetTime();
@@ -78,17 +73,22 @@ void calc_delta_time() {
 }
 
 void process_inputs(GLFWwindow* window) {
-	const float camSpeed = 2.5 * deltaTime;
-	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-		camPos += camSpeed * camFront;
-	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-		camPos -= camSpeed * camFront;
-	if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-		camPos -= glm::normalize(glm::cross(camFront, camUp)) * camSpeed;
-	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-		camPos += glm::normalize(glm::cross(camFront, camUp)) * camSpeed;
+	float camSpeed = 5 * deltaTime;
 
-	camTrans = glm::lookAt(camPos, camPos + camFront, up);
+	glm::vec3 dir;
+	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+		dir += up;
+	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+		dir -= up;
+	if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+		dir += right;
+	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+		dir -= right;
+
+	glm::normalize(dir);
+	dir *= -camSpeed;
+	cam.translate(dir);
+	//camTrans = glm::lookAt(camPos, camPos + forward, up);
 }
 
 int main() {
@@ -114,9 +114,7 @@ int main() {
 	framebuffer_size_callback(window, winW, winH);
 	glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
-	// lock cursor
-	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-	glfwSetCursorPosCallback(window, mouse_callback);
+	std::cout << "Loading textures" << std::endl;
 
 	// get texture
 	int w, h, nrChannels;
@@ -134,12 +132,21 @@ int main() {
 
 	stbi_image_free(data);
 
+	std::cout << "Loaded textures" << std::endl;
+
+	std::cout << "Loading shaders" << std::endl;
+
 	// shader
 	Shader stdShader("stdvert.vert", "stdfrag.frag");
 	unsigned int stdShaderId = stdShader.getID();
 	glUseProgram(stdShaderId);
 	unsigned int viewLoc = glGetUniformLocation(stdShaderId, "view");
 	unsigned int projLoc = glGetUniformLocation(stdShaderId, "proj");;
+
+	std::cout << "Loaded shaders" << std::endl;
+
+	//glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+	//glfwSetCursorPosCallback(window, mouse_callback);
 
 	// create test level object
 	Paths p1 {
@@ -150,7 +157,7 @@ int main() {
 			IntPoint(0, 20000),
 		}
 	};
-	LevelObject levelObject1 = LevelObject(p1, glm::vec3(0, 0, 0), 1, stdShaderId, tex);
+	levelObjects.push_back(LevelObject(p1, glm::vec3(0, 0, 0), 1, stdShaderId, tex));
 
 	Paths p2{
 		Path{
@@ -160,7 +167,7 @@ int main() {
 			IntPoint(100000, -10000),
 		}
 	};
-	LevelObject levelObject2 = LevelObject(p2, glm::vec3(0, 0, -2.5F), 5, stdShaderId, tex);
+	levelObjects.push_back(LevelObject(p2, glm::vec3(0, 0, -2.5F), 5, stdShaderId, tex));
 
 	Paths p3{
 		Path{
@@ -169,7 +176,7 @@ int main() {
 			IntPoint(10000, 30000),
 		}
 	};
-	LevelObject levelObject3 = LevelObject(p3, glm::vec3(0, 0, -0.1f), 1.2f, stdShaderId, tex);
+	levelObjects.push_back(LevelObject(p3, glm::vec3(0, 0, -0.1f), 1.2f, stdShaderId, tex));
 
 	Paths p4{
 		Path{
@@ -185,7 +192,7 @@ int main() {
 			IntPoint(-5200, 0),
 		},
 	};
-	LevelObject levelObject4 = LevelObject(p4, glm::vec3(3, 0, -1.5F), 0.5f, stdShaderId, tex);
+	levelObjects.push_back(LevelObject(p4, glm::vec3(3, 0, -1.5F), 0.5f, stdShaderId, tex));
 
 	Paths p5{
 		Path{
@@ -198,14 +205,20 @@ int main() {
 			IntPoint(-2500, 34200),
 		},
 	};
-	LevelObject levelObject5 = LevelObject(p5, glm::vec3(3, 0, -1.7f), 1.1f, stdShaderId, tex);
+	levelObjects.push_back(LevelObject(p5, glm::vec3(3, 0, -1.7f), 1.1f, stdShaderId, tex));
 
 	// buffers
 	glEnable(GL_DEPTH_TEST);
-	//glEnable(GL_CULL_FACE);
-	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+	glEnable(GL_CULL_FACE);
+	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
 	// game loop
+
+	std::cout << "Welcome to craftplane!" << std::endl;
+	//std::cout << "Use the arrow keys to move the cursor" << std::endl;
+	//std::cout << "Use the spacebar to start creating a new object or add a new point to an existing object" << std::endl;
+	//std::cout << "use enter to finish a new object" << std::endl;
+
 	while (!glfwWindowShouldClose(window)) {
 
 		calc_delta_time();
@@ -216,14 +229,12 @@ int main() {
 		glClearColor(0.2f, 0.3f, 0.3f, 1);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(camTrans));
-		glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(projection));
+		glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(cam.getTransform()));
+		glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(cam.getProjection()));
 
-		levelObject1.draw();
-		levelObject2.draw();
-		levelObject3.draw();
-		levelObject4.draw();
-		levelObject5.draw();
+		for (int i = 0; i < levelObjects.size(); i++) {
+			levelObjects[i].draw();
+		}
 
 		glfwSwapBuffers(window);
 		glfwPollEvents();
