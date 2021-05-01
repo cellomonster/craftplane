@@ -14,23 +14,24 @@
 #include "levelObject.h"
 #include "camera.h"
 
-int winW = 800;
-int winH = 800;
-float scrRatio = (float)winW / (float)winH;
-
-const float mouseSensitivity = 0.1f;
-float mouseLastX = winW / 2.0f, mouseLastY = winH / 2.0f;
-
-float deltaTime = 0;
-float lastFrame = 0;
+int windowWidth = 800;
+int windowHeight = 800;
 
 const float fov = 50;
 const float nearClip = 0.1f;
 const float farClip = 10000;
 
-Camera cam(fov, winH, winH, nearClip, farClip);
+float screenRatio = (float)windowWidth / (float)windowHeight;
+float deltaTime = 0;
+float lastFrame = 0;
 
+unsigned int stdShaderId;
+
+Camera cam(fov, windowHeight, windowHeight, nearClip, farClip);
 std::vector<LevelObject> levelObjects;
+
+LevelObject* buildingObject;
+Paths* buildingPaths;
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
 	cam.setPerspective(fov, width, height, nearClip, farClip);
@@ -72,7 +73,30 @@ void calc_delta_time() {
 	lastFrame = currentFrame;
 }
 
+void processKeys(GLFWwindow* window, int key, int scancode, int action, int mods) {
+	//build
+	if (key == GLFW_KEY_SPACE && action == GLFW_RELEASE) {
+
+		glm::mat4 camTransform = cam.getTransform();
+		glm::vec3 camPos(camTransform[3].x, -camTransform[3].y, 0);
+
+		buildingPaths = new Paths{
+			Path{
+			IntPoint(0, 0),
+			IntPoint(20000, 0),
+			IntPoint(20000, 20000),
+			IntPoint(0, 20000),}
+		};
+		buildingObject = new LevelObject(*buildingPaths,
+			camPos, 1.5f, stdShaderId, 0);
+
+		levelObjects.push_back(*buildingObject);
+	}
+}
+
 void process_inputs(GLFWwindow* window) {
+
+	//move camera
 	float camSpeed = 5 * deltaTime;
 
 	glm::vec3 dir;
@@ -88,33 +112,29 @@ void process_inputs(GLFWwindow* window) {
 	glm::normalize(dir);
 	dir *= -camSpeed;
 	cam.translate(dir);
-	//camTrans = glm::lookAt(camPos, camPos + forward, up);
 }
 
 int main() {
+	// build window
 	glfwInit();
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-
-	// build window
-	GLFWwindow* window = glfwCreateWindow(winW, winH, "Craftplane", NULL, NULL);
+	GLFWwindow* window = glfwCreateWindow(windowWidth, windowHeight, "Craftplane", NULL, NULL);
 	if (window == NULL) {
 		std::cout << "Couldn't create GLFW window!" << std::endl;
 		glfwTerminate();
 		return -1;
 	}
-
 	glfwMakeContextCurrent(window);
 	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
 		std::cout << "Couldn't init GLAD!" << std::endl;
 		return -1;
 	}
-
-	framebuffer_size_callback(window, winW, winH);
+	framebuffer_size_callback(window, windowWidth, windowHeight);
 	glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
-
-	std::cout << "Loading textures" << std::endl;
+	glfwSetKeyCallback(window, processKeys);
+	//glfwSetCursorPosCallback(window, mouse_callback);
 
 	// get texture
 	int w, h, nrChannels;
@@ -123,30 +143,19 @@ int main() {
 		std::cout << "Couldn't load texture!" << std::endl;
 		return -1;
 	}
-
 	unsigned int tex;
 	glGenTextures(1, &tex);
 	glBindTexture(GL_TEXTURE_2D, tex);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, w, h, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
 	glGenerateMipmap(GL_TEXTURE_2D);
-
 	stbi_image_free(data);
-
-	std::cout << "Loaded textures" << std::endl;
-
-	std::cout << "Loading shaders" << std::endl;
 
 	// shader
 	Shader stdShader("stdvert.vert", "stdfrag.frag");
-	unsigned int stdShaderId = stdShader.getID();
+	stdShaderId = stdShader.getID();
 	glUseProgram(stdShaderId);
 	unsigned int viewLoc = glGetUniformLocation(stdShaderId, "view");
 	unsigned int projLoc = glGetUniformLocation(stdShaderId, "proj");;
-
-	std::cout << "Loaded shaders" << std::endl;
-
-	//glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-	//glfwSetCursorPosCallback(window, mouse_callback);
 
 	// create test level object
 	Paths p1 {
@@ -207,22 +216,21 @@ int main() {
 	};
 	levelObjects.push_back(LevelObject(p5, glm::vec3(3, 0, -1.7f), 1.1f, stdShaderId, tex));
 
-	// buffers
+	//draw settings
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_CULL_FACE);
 	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
-	// game loop
-
+	// intro 
 	std::cout << "Welcome to craftplane!" << std::endl;
 	//std::cout << "Use the arrow keys to move the cursor" << std::endl;
 	//std::cout << "Use the spacebar to start creating a new object or add a new point to an existing object" << std::endl;
 	//std::cout << "use enter to finish a new object" << std::endl;
 
+	// game loop
 	while (!glfwWindowShouldClose(window)) {
 
 		calc_delta_time();
-
 		process_inputs(window);
 
 		// render

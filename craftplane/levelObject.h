@@ -46,18 +46,6 @@ public:
 
 	void setPos(glm::vec3 pos);
 	void translate(glm::vec3 delta);
-	void setPaths(Paths shape);
+	void setShape(Paths shape);
 	void setZThick(float zThick);
 };
-
-static void pathsToMesh(const Paths paths,
-	std::vector<glm::vec3>& verts,
-	std::vector<unsigned int>& tris,
-	std::vector<glm::vec2>& uvs,
-	std::vector<glm::vec3>& norms,
-	float zThick);
-
-static void computeNormals(const std::vector<glm::vec3> verts,
-	const std::vector<unsigned int> tris,
-	std::vector<glm::vec3>& norms);
-
