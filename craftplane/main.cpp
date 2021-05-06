@@ -11,6 +11,10 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
+#include "imgui/imgui.h"
+#include "imgui/imgui_impl_glfw.h"
+#include "imgui/imgui_impl_opengl3.h"
+
 #include "shader.h"
 #include "levelObject.h"
 #include "camera.h"
@@ -154,7 +158,7 @@ int main() {
 
 	// get texture
 	int w, h, nrChannels;
-	unsigned char* data = stbi_load("wood.jpg", &w, &h, &nrChannels, 0);
+	unsigned char* data = stbi_load("resources/wood.jpg", &w, &h, &nrChannels, 0);
 	if (!data) {
 		std::cout << "Couldn't load texture!" << std::endl;
 		std::cin.ignore();
@@ -168,7 +172,7 @@ int main() {
 	stbi_image_free(data);
 
 	// shader
-	Shader stdShader("stdvert.vert", "stdfrag.frag");
+	Shader stdShader("resources/stdvert.vert", "resources/stdfrag.frag");
 	stdShaderId = stdShader.getID();
 	glUseProgram(stdShaderId);
 	unsigned int viewLoc = glGetUniformLocation(stdShaderId, "view");
@@ -233,6 +237,15 @@ int main() {
 	};
 	levelObjects.push_back(new LevelObject(p5, glm::vec3(3, 0, -1.7f), 1.1f, stdShaderId, tex));
 
+	ImGui::CreateContext();
+	ImGuiIO& io = ImGui::GetIO(); (void)io;
+
+	io.Fonts->AddFontFromFileTTF("resources/verdana.ttf", 18.0f, NULL, NULL);
+
+	// setup platform/renderer bindings
+	ImGui_ImplGlfw_InitForOpenGL(window, true);
+	ImGui_ImplOpenGL3_Init("#version 130");
+
 	//draw settings
 	glEnable(GL_DEPTH_TEST);
 	//glEnable(GL_CULL_FACE);
@@ -259,6 +272,16 @@ int main() {
 		for (int i = 0; i < levelObjects.size(); i++) {
 			levelObjects[i]->draw();
 		}
+
+		ImGui_ImplOpenGL3_NewFrame();
+		ImGui_ImplGlfw_NewFrame();
+		ImGui::NewFrame();
+		ImGui::ShowDemoWindow((bool*)1);
+		ImGui::Render();
+		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
+
+		//ImGui::Text("Hello, world %d", 123);
 
 		glfwSwapBuffers(window);
 		glfwPollEvents();
