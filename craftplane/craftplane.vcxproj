@@ -146,11 +146,13 @@
     <ClCompile Include="camera.cpp" />
     <ClCompile Include="levelObject.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="mesher.cpp" />
     <ClCompile Include="shader.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="camera.h" />
     <ClInclude Include="levelObject.h" />
+    <ClInclude Include="mesher.h" />
     <ClInclude Include="shader.h" />
     <ClInclude Include="stb_image.h" />
   </ItemGroup>

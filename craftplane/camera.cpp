@@ -28,3 +28,14 @@ glm::mat4 Camera::getProjection() {
 glm::mat4 Camera::getTransform() {
 	return this->transform;
 }
+
+glm::vec3 Camera::getCursorPosition(glm::vec2 mousePos, float zPos) {
+	glm::vec4 mouse4(mousePos.xy, 1, 1);
+	glm::vec4 inv = glm::inverse(this->projection) * mouse4;
+	inv *= this->transform[3].z;
+	inv.x += this->transform[3].x;
+	inv.y -= this->transform[3].y;
+	inv.zw = 0;
+
+	return inv.xyz;
+}
