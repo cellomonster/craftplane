@@ -33,7 +33,7 @@ Camera cam(fov, windowHeight, windowHeight, nearClip, farClip);
 std::vector<LevelObject*> levelObjects;
 
 LevelObject* buildingObject;
-Paths* buildingPaths;
+Paths buildingPaths;
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
 	windowWidth = width;
@@ -55,22 +55,25 @@ void processKeys(GLFWwindow* window, int key, int scancode, int action, int mods
 	if (key == GLFW_KEY_SPACE && action == GLFW_RELEASE) {
 		if (buildingObject == NULL) {
 
-			buildingPaths = new Paths{
+			buildingPaths = Paths{
 				Path{
 					IntPoint(0, 0),
 				}
 			};
-			buildingObject = new LevelObject(*buildingPaths,
-				glm::vec3(mousePosition.x, mousePosition.y, 0), 1.5f, stdShaderId, 0);
+			buildingObject = new LevelObject(buildingPaths,
+				glm::vec3(mousePosition.x, mousePosition.y, 0), 0.5f, stdShaderId, 0);
 
 			levelObjects.push_back(buildingObject);
 		}
 		else {
 			glm::vec2 newPoint = buildingObject->positionAsLocal(mousePosition);
 			IntPoint newIPoint(newPoint.x * res, newPoint.y * res);
-			(*buildingPaths)[0].push_back(newIPoint);
-			buildingObject->setShape(*buildingPaths);
+			(buildingPaths)[0].push_back(newIPoint);
+			buildingObject->setShape(buildingPaths);
 		}
+	}
+	else if (key == GLFW_KEY_ESCAPE && action == GLFW_RELEASE) {
+		buildingObject = NULL;
 	}
 
 
@@ -194,12 +197,12 @@ int main() {
 
 	Paths p3{
 		Path{
-			IntPoint(0, 20000),
-			IntPoint(20000, 20000),
+			IntPoint(-1000, 20000),
+			IntPoint(21000, 20000),
 			IntPoint(10000, 30000),
 		}
 	};
-	levelObjects.push_back(new LevelObject(p3, glm::vec3(0, 0, -0.1f), 1.2f, stdShaderId, tex));
+	levelObjects.push_back(new LevelObject(p3, glm::vec3(0, 0, -0.4f), 1.8f, stdShaderId, tex));
 
 	Paths p4{
 		Path{
