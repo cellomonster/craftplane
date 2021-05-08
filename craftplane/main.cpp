@@ -38,6 +38,28 @@ std::vector<LevelObject*> levelObjects;
 
 LevelObject* buildingObject;
 Paths buildingPaths;
+IntPoint mousePoint;
+
+const char* modenames[] = {
+	"default",
+	"geometry",
+};
+unsigned int mode;
+const unsigned int modeCount = 2;
+
+void setMode(unsigned int m) {
+	if (!(m < modeCount)) {
+		return;
+	}
+
+	if (mode == 1 && m != 1) {
+		buildingPaths[0].pop_back();
+		buildingObject->setShape(buildingPaths);
+		buildingObject = NULL;
+	}
+
+	mode = m;
+}
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
 	windowWidth = width;
@@ -57,19 +79,23 @@ bool wireframe;
 void processKeys(GLFWwindow* window, int key, int scancode, int action, int mods) {
 	//build
 	if (key == GLFW_KEY_SPACE && action == GLFW_RELEASE) {
-		if (buildingObject == NULL) {
+		if (mode == 0) {
+			setMode(1);
 
 			buildingPaths = Paths{
 				Path{
 					IntPoint(0, 0),
+					// next mouse point
+					IntPoint(0, 0),
 				}
 			};
 			buildingObject = new LevelObject(buildingPaths,
-				glm::vec3(mousePosition.x, mousePosition.y, 0), 0.5f, stdShaderId, 0);
+				glm::vec3(mousePosition.x, mousePosition.y, 0), 
+				0.5f, stdShaderId, 0);
 
 			levelObjects.push_back(buildingObject);
 		}
-		else {
+		else if(mode == 1) {
 			glm::vec2 newPoint = buildingObject->positionAsLocal(mousePosition);
 			IntPoint newIPoint(newPoint.x * res, newPoint.y * res);
 			(buildingPaths)[0].push_back(newIPoint);
@@ -77,7 +103,7 @@ void processKeys(GLFWwindow* window, int key, int scancode, int action, int mods
 		}
 	}
 	else if (key == GLFW_KEY_ESCAPE && action == GLFW_RELEASE) {
-		buildingObject = NULL;
+		setMode(0);
 	}
 
 
@@ -109,6 +135,13 @@ void mouse_callback(GLFWwindow* window, double x, double y) {
 
 	glm::vec2 mousePosScreen(x, -y);
 	mousePosition = cam.getCursorPosition(mousePosScreen, 0);
+	
+	if (mode == 1) {
+		glm::vec2 newPoint = buildingObject->positionAsLocal(mousePosition);
+		IntPoint newIPoint(newPoint.x * res, newPoint.y * res);
+		(buildingPaths)[0].back() = newIPoint;
+		buildingObject->setShape(buildingPaths);
+	}
 }
 
 void process_inputs(GLFWwindow* window) {
@@ -252,9 +285,6 @@ int main() {
 
 	// intro 
 	std::cout << "Welcome to craftplane!" << std::endl;
-	//std::cout << "Use the arrow keys to move the cursor" << std::endl;
-	//std::cout << "Use the spacebar to start creating a new object or add a new point to an existing object" << std::endl;
-	//std::cout << "use enter to finish a new object" << std::endl;
 
 	// game loop
 	while (!glfwWindowShouldClose(window)) {
@@ -276,12 +306,26 @@ int main() {
 		ImGui_ImplOpenGL3_NewFrame();
 		ImGui_ImplGlfw_NewFrame();
 		ImGui::NewFrame();
-		ImGui::ShowDemoWindow((bool*)1);
+		
+		if (ImGui::Begin("Mode")) {
+			ImGui::Text(modenames[mode]);
+			switch (mode) {
+				case 0: {
+					ImGui::Text("space - create a new shape");
+					break;
+				}
+				case 1: {
+					ImGui::Text("space - add a point");
+					ImGui::Text("esc - exit mode");
+					break;
+				}
+			}
+		}
+		ImGui::End();
+
+
 		ImGui::Render();
 		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-
-
-		//ImGui::Text("Hello, world %d", 123);
 
 		glfwSwapBuffers(window);
 		glfwPollEvents();
